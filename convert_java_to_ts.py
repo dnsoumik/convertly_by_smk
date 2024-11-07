@@ -19,7 +19,7 @@ def java_type_to_typescript(java_type):
     return type_mappings.get(java_type, java_type)  # Default to the same type if not found
 
 def convert_java_file_to_ts(java_file_path, ts_file_path):
-    """Convert a single Java POJO file to a TypeScript interface file."""
+    """Convert a single Java POJO file to a TypeScript class without underscores and without getters and setters."""
     with open(java_file_path, 'r') as java_file:
         java_content = java_file.read()
     
@@ -33,11 +33,14 @@ def convert_java_file_to_ts(java_file_path, ts_file_path):
     # Extract properties (assuming they are defined as private with basic types)
     properties = re.findall(r'private\s+(\w+)\s+(\w+);', java_content)
 
-    # Create the TypeScript interface content
-    ts_content = f"interface {class_name} {{\n"
+    # Create the TypeScript class content without getters, setters, or underscore-prefixed fields
+    ts_content = f"export class {class_name} {{\n"
+    
+    # Property declarations with the same variable names
     for java_type, prop_name in properties:
         ts_type = java_type_to_typescript(java_type)
-        ts_content += f"  {prop_name}: {ts_type};\n"
+        ts_content += f"  private {prop_name}: {ts_type};\n"
+    
     ts_content += "}\n"
 
     # Save to TypeScript file
@@ -47,7 +50,7 @@ def convert_java_file_to_ts(java_file_path, ts_file_path):
     print(f"Converted {java_file_path} to {ts_file_path}")
 
 def convert_all_java_to_ts(entity_dir, models_dir):
-    """Convert all Java POJO files in the entity_dir to TypeScript interfaces in models_dir."""
+    """Convert all Java POJO files in the entity_dir to TypeScript classes in models_dir."""
     if not os.path.exists(models_dir):
         os.makedirs(models_dir)  # Create the models directory if it doesn't exist
 
