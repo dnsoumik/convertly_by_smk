@@ -2,7 +2,7 @@ import os
 import re
 
 def java_type_to_typescript(java_type):
-    """Map Java types to TypeScript types, including handling of generics and VO-to-Model conversion."""
+    """Map Java types to TypeScript types, including handling of generics, VO-to-Model conversion, BigDecimal, and byte[]."""
     type_mappings = {
         "int": "number",
         "Integer": "number",
@@ -20,6 +20,8 @@ def java_type_to_typescript(java_type):
         "Boolean": "boolean",
         "char": "string",
         "String": "string",
+        "BigDecimal": "number",  # BigDecimal mapped to number
+        "byte[]": "Uint8Array"  # byte[] mapped to Uint8Array for binary data
     }
 
     # Check for generic types like List<AnimalVO> or Array<AnimalVO>
@@ -46,7 +48,7 @@ def to_kebab_case(name):
     return re.sub(r'(?<!^)(?=[A-Z])', '-', name).lower()
 
 def convert_java_file_to_ts(java_file_path, ts_file_path):
-    """Convert a single Java POJO file to a TypeScript class with optional fields."""
+    """Convert a single Java POJO file to a TypeScript class with optional fields, without a constructor."""
     with open(java_file_path, 'r') as java_file:
         java_content = java_file.read()
     
@@ -62,7 +64,7 @@ def convert_java_file_to_ts(java_file_path, ts_file_path):
         class_name = class_name[:-2] + "Model"
 
     # Extract properties (assuming they are defined as private with basic types or generics)
-    properties = re.findall(r'private\s+([\w<>]+)\s+(\w+);', java_content)
+    properties = re.findall(r'private\s+([\w\[\]<>]+)\s+(\w+);', java_content)
 
     # Create the TypeScript class content with optional fields
     ts_content = f"export class {class_name} {{\n"
@@ -71,7 +73,7 @@ def convert_java_file_to_ts(java_file_path, ts_file_path):
     for java_type, prop_name in properties:
         ts_type = java_type_to_typescript(java_type)
         ts_content += f"  {prop_name}?: {ts_type};\n"
-    
+
     ts_content += "}\n"
 
     # Save to TypeScript file
@@ -88,8 +90,10 @@ def convert_all_java_to_ts(entity_dir, models_dir):
     for filename in os.listdir(entity_dir):
         if filename.endswith(".java"):
             java_file_path = os.path.join(entity_dir, filename)
-            # Convert filename to kebab-case and replace .java with .model.ts
+            # Remove VO suffix from filename if it exists, then convert to kebab-case and add .model.ts
             base_name = filename.replace(".java", "")
+            if base_name.endswith("VO"):
+                base_name = base_name[:-2]  # Remove "VO" suffix
             ts_file_name = to_kebab_case(base_name) + ".model.ts"
             ts_file_path = os.path.join(models_dir, ts_file_name)
             convert_java_file_to_ts(java_file_path, ts_file_path)
