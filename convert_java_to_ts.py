@@ -2,15 +2,22 @@ import os
 import re
 
 def java_type_to_typescript(java_type):
-    """Map Java types to TypeScript types."""
+    """Map Java types to TypeScript types, including common Java wrapper types."""
     type_mappings = {
         "int": "number",
+        "Integer": "number",
         "float": "number",
+        "Float": "number",
         "double": "number",
+        "Double": "number",
         "long": "number",
+        "Long": "number",
         "short": "number",
+        "Short": "number",
         "byte": "number",
+        "Byte": "number",
         "boolean": "boolean",
+        "Boolean": "boolean",
         "char": "string",
         "String": "string",
         "List": "Array",  # assuming generic types like List<String> are used
@@ -18,8 +25,12 @@ def java_type_to_typescript(java_type):
     }
     return type_mappings.get(java_type, java_type)  # Default to the same type if not found
 
+def to_kebab_case(name):
+    """Convert PascalCase or camelCase to kebab-case."""
+    return re.sub(r'(?<!^)(?=[A-Z])', '-', name).lower()
+
 def convert_java_file_to_ts(java_file_path, ts_file_path):
-    """Convert a single Java POJO file to a TypeScript class without underscores and without getters and setters."""
+    """Convert a single Java POJO file to a TypeScript class without private fields."""
     with open(java_file_path, 'r') as java_file:
         java_content = java_file.read()
     
@@ -33,13 +44,13 @@ def convert_java_file_to_ts(java_file_path, ts_file_path):
     # Extract properties (assuming they are defined as private with basic types)
     properties = re.findall(r'private\s+(\w+)\s+(\w+);', java_content)
 
-    # Create the TypeScript class content without getters, setters, or underscore-prefixed fields
+    # Create the TypeScript class content without private fields
     ts_content = f"export class {class_name} {{\n"
     
-    # Property declarations with the same variable names
+    # Property declarations with the same variable names and no private keyword
     for java_type, prop_name in properties:
         ts_type = java_type_to_typescript(java_type)
-        ts_content += f"  private {prop_name}: {ts_type};\n"
+        ts_content += f"  {prop_name}: {ts_type};\n"
     
     ts_content += "}\n"
 
@@ -57,7 +68,9 @@ def convert_all_java_to_ts(entity_dir, models_dir):
     for filename in os.listdir(entity_dir):
         if filename.endswith(".java"):
             java_file_path = os.path.join(entity_dir, filename)
-            ts_file_name = filename.replace(".java", ".ts")
+            # Convert filename to kebab-case and replace .java with .ts
+            base_name = filename.replace(".java", "")
+            ts_file_name = to_kebab_case(base_name) + ".ts"
             ts_file_path = os.path.join(models_dir, ts_file_name)
             convert_java_file_to_ts(java_file_path, ts_file_path)
 
