@@ -34,7 +34,7 @@ This project contains a Python script to automatically convert Java Plain Old Ja
 2. Run the script:
 
     ```bash
-    python convert_java_to_ts.py or convert_with_constructure_java_to_ts.py
+    python convert_java_to_ts.py
     ```
 
 3. Converted TypeScript files will be generated in the `./models` directory.
