@@ -52,18 +52,12 @@ def convert_java_file_to_ts(java_file_path, ts_file_path):
     with open(java_file_path, 'r') as java_file:
         java_content = java_file.read()
     
-    # Extract the class name and access modifier
-    class_match = re.search(r'(public|private)?\s*class\s+(\w+)', java_content)
-    if not class_match:
+    # Extract the class name
+    class_name_match = re.search(r'public class\s+(\w+)', java_content)
+    if not class_name_match:
         print(f"No class definition found in {java_file_path}. Skipping file.")
         return
-
-    # Check if the class is private and skip if it is
-    class_modifier = class_match.group(1)
-    class_name = class_match.group(2)
-    if class_modifier == "private":
-        print(f"Skipping private class {class_name} in {java_file_path}.")
-        return
+    class_name = class_name_match.group(1)
 
     # Rename class if it ends with VO (e.g., GoatVO -> GoatModel)
     if class_name.endswith("VO"):
