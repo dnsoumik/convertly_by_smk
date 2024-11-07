@@ -46,7 +46,7 @@ def to_kebab_case(name):
     return re.sub(r'(?<!^)(?=[A-Z])', '-', name).lower()
 
 def convert_java_file_to_ts(java_file_path, ts_file_path):
-    """Convert a single Java POJO file to a TypeScript class with optional fields."""
+    """Convert a single Java POJO file to a TypeScript class with optional fields and constructor."""
     with open(java_file_path, 'r') as java_file:
         java_content = java_file.read()
     
@@ -64,14 +64,20 @@ def convert_java_file_to_ts(java_file_path, ts_file_path):
     # Extract properties (assuming they are defined as private with basic types or generics)
     properties = re.findall(r'private\s+([\w<>]+)\s+(\w+);', java_content)
 
-    # Create the TypeScript class content with optional fields
+    # Create the TypeScript class content with optional fields and constructor
     ts_content = f"export class {class_name} {{\n"
     
     # Property declarations with the same variable names, all optional
     for java_type, prop_name in properties:
         ts_type = java_type_to_typescript(java_type)
         ts_content += f"  {prop_name}?: {ts_type};\n"
-    
+
+    # Constructor definition
+    ts_content += "\n  constructor(init?: Partial<{class_name}>) {{\n"
+    for _, prop_name in properties:
+        ts_content += f"    this.{prop_name} = init?.{prop_name};\n"
+    ts_content += "  }\n"
+
     ts_content += "}\n"
 
     # Save to TypeScript file
