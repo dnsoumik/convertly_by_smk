@@ -52,27 +52,36 @@ def convert_java_file_to_ts(java_file_path, ts_file_path):
     with open(java_file_path, 'r') as java_file:
         java_content = java_file.read()
     
-    # Extract the class name
-    class_name_match = re.search(r'class\s+(\w+)', java_content)
-    if not class_name_match:
+    # Extract the class name and access modifier
+    class_match = re.search(r'(public|private)?\s*class\s+(\w+)', java_content)
+    if not class_match:
         print(f"No class definition found in {java_file_path}. Skipping file.")
         return
-    class_name = class_name_match.group(1)
+
+    # Check if the class is private and skip if it is
+    class_modifier = class_match.group(1)
+    class_name = class_match.group(2)
+    if class_modifier == "private":
+        print(f"Skipping private class {class_name} in {java_file_path}.")
+        return
 
     # Rename class if it ends with VO (e.g., GoatVO -> GoatModel)
     if class_name.endswith("VO"):
         class_name = class_name[:-2] + "Model"
 
-    # Extract properties (assuming they are defined as private with optional initializations like = null)
-    properties = re.findall(r'private\s+([\w\[\]<>]+)\s+(\w+)(?:\s*=\s*[^;]+)?;', java_content)
+    # Extract properties (support both public and private access modifiers, and handle optional initializations)
+    properties = re.findall(r'(public|private)\s+([\w\[\]<>]+)\s+(\w+)(?:\s*=\s*[^;]+)?;', java_content)
 
-    # Create the TypeScript class content with optional fields
+    # Create the TypeScript class content with optional fields and public modifiers
     ts_content = f"export class {class_name} {{\n"
     
-    # Property declarations with the same variable names, all optional
-    for java_type, prop_name in properties:
+    # Property declarations with access modifiers (public or optional)
+    for access_modifier, java_type, prop_name in properties:
         ts_type = java_type_to_typescript(java_type)
-        ts_content += f"  {prop_name}?: {ts_type};\n"
+        if access_modifier == "public":
+            ts_content += f"  {prop_name}: {ts_type};\n"  # public in TypeScript
+        else:
+            ts_content += f"  {prop_name}?: {ts_type};\n"  # private in TypeScript (optional)
 
     ts_content += "}\n"
 
