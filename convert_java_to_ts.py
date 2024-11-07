@@ -63,8 +63,8 @@ def convert_java_file_to_ts(java_file_path, ts_file_path):
     if class_name.endswith("VO"):
         class_name = class_name[:-2] + "Model"
 
-    # Extract properties (assuming they are defined as private with basic types or generics)
-    properties = re.findall(r'private\s+([\w\[\]<>]+)\s+(\w+);', java_content)
+    # Extract properties (assuming they are defined as private with optional initializations like = null)
+    properties = re.findall(r'private\s+([\w\[\]<>]+)\s+(\w+)(?:\s*=\s*[^;]+)?;', java_content)
 
     # Create the TypeScript class content with optional fields
     ts_content = f"export class {class_name} {{\n"
